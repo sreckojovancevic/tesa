@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>OCR Upload</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+        }
+        h1 {
+            color: #333;
+        }
+        form {
+            margin-bottom: 20px;
+        }
+        input[type="file"] {
+            margin-right: 10px;
+        }
+        .error {
+            color: red;
+        }
+        .result {
+            border: 1px solid #ccc;
+            padding: 10px;
+            margin-top: 20px;
+            background-color: #f9f9f9;
+            white-space: pre-wrap; /* Preserve whitespace for the OCR result */
+        }
+        .download-link {
+            margin-top: 20px;
+            display: block;
+        }
+    </style>
+</head>
+<body>
+    <h1>Upload a File for OCR</h1>
+    <form action="/" method="post" enctype="multipart/form-data">
+        <input type="file" name="file" required>
+        <select name="language">
+            <option value="eng">English</option>
+            <option value="srp_latn">Serbian (Latin)</option>
+            <option value="srp_cir">Serbian (Cyrillic)</option>
+            <option value="spa">Spanish</option>
+            <option value="fra">French</option>
+            <option value="deu">German</option>
+            <option value="ita">Italian</option>
+            <option value="por">Portuguese</option>
+            <option value="rus">Russian</option>
+            <option value="jpn">Japanese</option>
+            <option value="chi_sim">Chinese (Simplified)</option>
+            <option value="chi_tra">Chinese (Traditional)</option>
+        </select>
+        <button type="submit">Upload</button>
+    </form>
+    
+    {% if text %}
+        <h2>OCR Result:</h2>
+        <div class="result">
+            <pre>{{ text }}</pre>
+        </div>
+        <a href="/download/{{ docx_path }}" class="download-link" download>Download DOCX</a>
+    {% endif %}
+    
+    {% if error %}
+        <p class="error">{{ error }}</p>
+    {% endif %}
+    
+    {% if job_id %}
+        <p>Processing your file... Check back later for results.</p>
+<script>
+    // Poll for job status
+    setInterval(function() {
+        fetch('/job/{{ job_id }}')
+            .then(response => response.json())
+            .then(data => {
+                let resultElement = document.querySelector('.result');
+
+                if (data.result) {
+                    // Create the result element if it doesn't exist
+                    if (!resultElement) {
+                        resultElement = document.createElement('div');
+                        resultElement.className = 'result';
+                        document.body.insertBefore(resultElement, document.querySelector('p'));
+                    }
+                    // Update the result
+                    resultElement.innerText = data.result;
+                    document.querySelector('p').innerText = '';
+
+                    // Add or update download link
+                    let downloadLink = document.querySelector('a[href^="/download/"]');
+                    if (!downloadLink) {
+                        downloadLink = document.createElement('a');
+                        document.body.appendChild(downloadLink);
+                    }
+                    downloadLink.href = '/download/' + data.docx_path;
+                    downloadLink.innerText = 'Download DOCX';
+                } else if (data.status) {
+                    document.querySelector('p').innerText = data.status;
+                }
+            });
+    }, 15000); // Check every 15 seconds
+</script>
+    {% endif %}
+</body>
+</html>
